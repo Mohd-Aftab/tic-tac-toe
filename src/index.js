@@ -2,6 +2,30 @@ import ReactDOM from 'react-dom';
 import React from 'react';
 import './index.css'
 
+function getGameStatus(squares){
+    let winCombos = [
+        [0,1,2],
+        [3,4,5],
+        [6,7,8],
+        [0,3,6],
+        [1,4,7],
+        [2,5,8],
+        [0,4,8],
+        [2,4,6],
+    ]
+    for(let i=0; i<winCombos.length; i++){
+        let wins = winCombos[i];
+        let s1 = wins[0];
+        let s2 = wins[1];
+        let s3 = wins[2];
+
+        if(squares[s1] != null && squares[s1] == squares[s2] && squares[s2] == squares[s3]){
+            return squares[s1]; 
+        }
+    }
+    return null;
+}
+
 class Board extends React.Component{
     handlerBoxesClick(i){
         this.props.handleSquareClick(i);
@@ -41,26 +65,28 @@ class Board extends React.Component{
     }
 }
 class Display extends React.Component{
+
+    moveToHistory(i){
+        this.props.handleForHistory(i);
+    }
+
     render(){
-        let gameTitle = null;
+        let gameTitle;
+
 
         if(this.props.gameStatus != null){
-            gameTitle = this.props.gameStatus;
+            gameTitle = this.props.gameStatus + " Wins";
         }else{
-            if(this.props.stepNumber % 2 == 0){
-                gameTitle = 'Next move for X';
-            }else{
-                gameTitle = 'Next move for O';
-            }
+            gameTitle = "Next move for " + (this.props.stepNumber % 2 == 0 ? 'X' : 'O');
         }
 
         let buttons = [];
         for(let i=0; i<=this.props.stepNumber; i++){
             let button = null;
             if(i == 0){
-                button = (<button>Go to Start</button>)
+                button = (<button onClick={()=>this.moveToHistory(i)}>Go to Start</button>)
             }else{
-                button = (<button>Go to step number{i}</button>)
+                button = (<button onClick={()=>this.moveToHistory(i)}>Go to step number{i}</button>)
             }
             buttons.push(button)
         }
@@ -87,6 +113,7 @@ class TTT extends React.Component{
         this.state = {
             history : [
                 [null, null, null, null, null, null, null, null, null]
+                // [0, 1, 2, 3, 4, 5, 6, 7, 8]
             ],
             stepNumber : 0,
             gameStatus : null
@@ -95,25 +122,37 @@ class TTT extends React.Component{
     handleSquareClick(i){
         let oldHistory = this.state.history.slice();
         let lastStateOfSquare = oldHistory[oldHistory.length-1].slice();
-        if(lastStateOfSquare[i] != null){
+        if(lastStateOfSquare[i] != null || this.state.gameStatus != null){
             return;
         }
         lastStateOfSquare[i] = this.state.stepNumber%2 == 0 ? 'X' : "O";
         oldHistory.push(lastStateOfSquare);
 
+        let newGameStatus = getGameStatus(lastStateOfSquare);
+
         this.setState({
             history : oldHistory,
             stepNumber : this.state.stepNumber+1,
-            gameStatus : null
+            gameStatus : newGameStatus
+        })
+    }
+    moveToStep(i){
+        let oldHistory = this.state.history.slice(0, i+1);
+        let lastStateOfSquare = oldHistory[oldHistory.length-1].slice();
+        let newGameStatus = getGameStatus(lastStateOfSquare);
+        this.setState({
+            history: oldHistory,
+            stepNumber:i,
+            gameStatus:newGameStatus
         })
     }
     render(){
 
-        let squares = this.state.history[this.state.history.length-1];
+        let squares = this.state.history[this.state.history.length-1]; 
         return (
             <>
                 <Board handleSquareClick={(i)=> this.handleSquareClick(i)} boxes={squares}/>
-                <Display stepNumber = {this.state.stepNumber} gameStatus={this.state.gameStatus}/>
+                <Display handleForHistory = {(i)=>this.moveToStep(i)} stepNumber = {this.state.stepNumber} gameStatus={this.state.gameStatus}/>
             </>
         )
     }
